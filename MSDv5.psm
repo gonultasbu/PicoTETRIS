@@ -1,0 +1,1117 @@
+NAMEREG		s0, counter
+NAMEREG		s4, input_block
+
+NAMEREG		sC,	part_main
+
+NAMEREG		sB, part1_add
+NAMEREG		sA, part2_add
+NAMEREG		s9, part3_add
+NAMEREG		s8,	part4_add
+
+NAMEREG		s7, TEMP
+NAMEREG		s6, TEMP_add
+
+Pause:
+		INPUT	s5, FE
+		COMPARE	s5, 80
+		JUMP	Z,Pause
+		JUMP Generate
+; Create a new block
+Generate:
+	LOAD	s1, 01;Point REG
+
+	;###
+GEN:
+LOAD part_main,F8
+LOAD part1_add,D2
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D3
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D4
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D5
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D6
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D7
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D8
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,D9
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,DA
+OUTPUT part_main,(part1_add)
+
+LOAD part_main,F8
+LOAD part1_add,DB
+OUTPUT part_main,(part1_add)
+		LOAD 	counter, 00
+		INPUT s5, FE 	;FE port has sw input
+		COMPARE s5,80
+		JUMP Z,Pause 	; Pause functionality
+		INPUT	s5, FF	 ;FF port has random input
+		LOAD  input_block, s5
+		COMPARE s5, 02
+		CALL 	Z, L_block
+		COMPARE s5, 01
+		CALL 	Z, L_inverse
+		COMPARE s5, 03
+		CALL 	Z, Z_block
+		COMPARE s5, 04
+		CALL 	Z, S_block
+		COMPARE s5, 05
+		CALL 	Z, I_block
+		COMPARE s5, 06
+		CALL 	Z, SQ_block
+		COMPARE s5, 00
+		CALL 	Z, T_block
+		OUTPUT  part_main, (part1_add)
+		OUTPUT  part_main, (part2_add)
+		OUTPUT  part_main, (part3_add)
+		OUTPUT  part_main, (part4_add)
+		JUMP	Collision 		;First check for collision then shift down
+
+		LOAD	sD, 01        ;Point REG
+
+shiftDown:
+	;;Delete previous locations
+		INPUT	s5, FE ;CHECK FOR L-R SHIFT REQUESTS
+		COMPARE	s5, 40
+		JUMP	Z,left_Collision
+		INPUT	s5, FE
+		COMPARE	s5, 20
+		JUMP	Z,right_Collision
+		COMPARE	s5, 01
+		JUMP	 Z, rotate ; CHECK FOR ROTATE
+		LOAD	s5, 00
+		OUTPUT	s5, (part1_add)
+		OUTPUT	s5, (part2_add)
+		OUTPUT	s5, (part3_add)
+		OUTPUT	s5, (part4_add)
+		ADD		part4_add, 0A
+		OUTPUT	part_main, (part4_add)
+		ADD		part3_add, 0A
+		OUTPUT	part_main, (part3_add)
+		ADD		part2_add, 0A
+		OUTPUT	part_main, (part2_add)
+		ADD		part1_add, 0A
+		OUTPUT	part_main, (part1_add)
+		INPUT	s5, FE ;CHECK FOR SPEEDUP
+		COMPARE	s5, 10
+		JUMP	Z,SPEEDUP
+
+		CALL	DELAY
+RET_SPEEDUP:
+		JUMP	Collision
+
+rotate:
+	 COMPARE    counter, 00
+	 JUMP	    Z, firstRotate
+	 COMPARE    counter, 01
+	 JUMP	    Z, secondRotate
+	 COMPARE    counter, 02
+	 JUMP	    Z, thirdRotate
+	 COMPARE    counter, 03
+	 JUMP	    Z, zeroRotate
+
+	 CALL		DELAY
+	 JUMP		Collision
+
+shiftLeft:
+
+	;;Delete previous locations
+	 LOAD	s5, 00
+	 OUTPUT	s5, (part1_add)
+	 OUTPUT	s5, (part2_add)
+	 OUTPUT	s5, (part3_add)
+	 OUTPUT	s5, (part4_add)
+	 SUB		part4_add, 01
+	 OUTPUT	part_main, (part4_add)
+	 SUB		part3_add, 01
+	 OUTPUT	part_main, (part3_add)
+	 SUB		part2_add, 01
+	 OUTPUT	part_main, (part2_add)
+	 SUB		part1_add, 01
+	 OUTPUT	part_main, (part1_add)
+	 CALL	DELAY
+	 JUMP	Collision
+
+shiftRight:
+
+	;;Delete previous locations
+	LOAD	s5, 00
+	OUTPUT	s5, (part1_add)
+	OUTPUT	s5, (part2_add)
+	OUTPUT	s5, (part3_add)
+	OUTPUT	s5, (part4_add)
+	ADD		part4_add, 01
+	OUTPUT	part_main, (part4_add)
+	ADD		part3_add, 01
+	OUTPUT	part_main, (part3_add)
+	ADD		part2_add, 01
+	OUTPUT	part_main, (part2_add)
+	ADD		part1_add, 01
+	OUTPUT	part_main, (part1_add)
+	CALL	DELAY
+	JUMP	Collision
+
+left_Collision:
+	 	; Check for object collision
+		LOAD TEMP_add, part1_add
+		SUB		TEMP_add, 01
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		JUMP	NZ, Collision
+		ADD TEMP_add,01
+		JUMP Z, Collision
+    modulus_1_left: ;check for border collision
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, modulus_1_left_2 ;need to skip next instruction if C is flagged
+		JUMP modulus_1_left
+
+modulus_1_left_2:
+		LOAD TEMP_add, part2_add
+		SUB		TEMP_add, 01
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		JUMP	NZ, Collision
+		ADD TEMP_add,01
+		JUMP Z, Collision
+modulus_2_left:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, modulus_2_left_3
+		JUMP modulus_2_left
+
+modulus_2_left_3:
+		LOAD TEMP_add, part3_add
+		SUB		TEMP_add, 01
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		JUMP	NZ, Collision
+		ADD TEMP_add,01
+		JUMP Z, Collision
+modulus_3_left:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, modulus_3_left_4
+		JUMP modulus_3_left
+
+modulus_3_left_4:
+		LOAD TEMP_add, part4_add
+		SUB		TEMP_add, 01
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		JUMP	NZ, Collision
+		ADD TEMP_add,01
+		JUMP Z, Collision
+modulus_4_left:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, shiftLeft
+		JUMP modulus_4_left
+
+		JUMP shiftLeft
+
+right_Collision:
+	 ; Check for object collision
+	 	LOAD TEMP_add, part4_add
+	 	ADD		TEMP_add, 01
+	 	INPUT 	TEMP, (TEMP_add)
+	 	TEST	TEMP, 08; check for object
+	 	JUMP	NZ, Collision
+modulus_1_right:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, modulus_1_right_2
+		JUMP modulus_1_right
+
+modulus_1_right_2:
+	 	LOAD TEMP_add, part2_add
+	 	ADD		TEMP_add, 01
+	 	INPUT 	TEMP, (TEMP_add)
+	 	TEST	TEMP, 08; check for object
+	 	JUMP	NZ, Collision
+modulus_2_right:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, modulus_2_right_3
+		JUMP modulus_2_right
+
+modulus_2_right_3:
+		LOAD TEMP_add, part3_add
+		ADD		TEMP_add, 01
+		INPUT 	TEMP, (TEMP_add)
+	 	TEST	TEMP, 08; check for object
+	 	JUMP	NZ, Collision
+modulus_3_right:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, modulus_3_right_4
+		JUMP modulus_3_right
+
+modulus_3_right_4:
+		LOAD TEMP_add, part1_add ;Changed with part4 for stupid bug workaround
+	 	ADD		TEMP_add, 01
+	 	INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+	 	JUMP	NZ, Collision
+
+modulus_4_right:
+		SUB TEMP_add,0A
+		JUMP Z, Collision
+		JUMP C, shiftRight
+		JUMP modulus_4_right
+		JUMP shiftRight
+
+Collision:
+
+		LOAD	TEMP_add, part3_add
+		ADD		TEMP_add, 0A
+		COMPARE	TEMP_add, DC; check for border
+		JUMP	NC, Terminate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		JUMP	NZ, Terminate
+
+		LOAD	TEMP_add, part1_add
+		ADD		TEMP_add, 0A
+		COMPARE	TEMP_add, DC; check for border
+		JUMP	NC, Terminate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		JUMP	NZ, Terminate
+
+		LOAD	TEMP_add, part2_add
+		ADD		TEMP_add, 0A
+		COMPARE	TEMP_add, DC
+		JUMP	NC, Terminate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08
+		JUMP	NZ, Terminate
+
+		LOAD	TEMP_add, part4_add
+		ADD		TEMP_add, 0A
+		COMPARE	TEMP_add, DC
+		JUMP	NC, Terminate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08
+		JUMP	NZ, Terminate
+
+		;BUG WORKAROUND CODE REPETITION START
+		LOAD	TEMP_add, part3_add
+		ADD		TEMP_add, 0A
+		COMPARE	TEMP_add, DC; check for border
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08; check for object
+		LOAD TEMP_add,00
+		;BUG WORKAROUND CODE REPETITION END
+
+		JUMP Z, shiftDown
+
+Terminate:
+		INPUT	s5, FE ;CHECK FOR L-R SHIFT REQUESTS
+		COMPARE	s5, 40
+		JUMP	Z,left_Collision
+		INPUT	s5, FE
+		COMPARE	s5, 20
+		JUMP	Z,right_Collision
+		COMPARE	s5, 01
+		JUMP	 Z, rotate ; CHECK FOR ROTATE
+		LOAD	TEMP, part_main; lock the parts
+		OR		TEMP, 08
+		OUTPUT	TEMP, (part1_add)
+		OUTPUT	TEMP, (part2_add)
+		OUTPUT	TEMP, (part3_add)
+		OUTPUT	TEMP, (part4_add)
+		LOAD    counter, 00
+
+		LOAD counter, AA
+CheckDelete:
+		LOAD	s2, DB ; this has 219 or the rightmost block of a row
+
+CheckRow:
+		LOAD 	TEMP_add, s2
+
+		SUB		s2, 0A
+		JUMP	C, Generate
+LPP:
+		INPUT	TEMP, (TEMP_add)
+		TEST	TEMP, 08		; If the block is frozen
+		JUMP	Z, CheckRow
+		SUB		TEMP_add, 01
+		COMPARE	TEMP_add, s2	; If last row is finished
+		JUMP	Z, ShiftAbove
+		JUMP	LPP
+
+
+ShiftAbove:
+
+
+		INPUT	TEMP, (TEMP_add) ; Temp_add has the right most block in upper row.
+		ADD		TEMP_add, 0B	 ; Shift down adress
+		OUTPUT	TEMP, (TEMP_add) ; Send adress
+		SUB		TEMP_add, 0C	 ; Sub 10 + 1  from adress to shift to left
+		JUMP	NC, ShiftAbove	 	 ; If the result is positive continue
+		JUMP	CheckDelete		 ; If negative then start over.(Means all the necessary rows are shifted down)
+
+		JUMP 	Generate
+
+SPEEDUP:
+		LOAD s1,AA
+		CALL L1
+		JUMP RET_SPEEDUP
+
+DELAY:
+		LOAD	s1, FF
+L1:	LOAD	s2,	FF
+L2:	LOAD	s3,	30
+L3:	SUB		s3, 01
+		JUMP	NZ,	L3
+		SUB		s2,	01
+		JUMP	NZ,	L2
+		SUB		s1, 01
+		JUMP	NZ, L1
+		RETURN
+		RETURN
+
+TRAP:		JUMP	TRAP
+
+L_inverse:
+		LOAD	part_main, 07
+
+		LOAD	part1_add, 03
+		LOAD	part2_add, 0D
+		LOAD	part3_add, 0E
+		LOAD	part4_add, 0F
+		RETURN
+
+L_block:
+		LOAD	part_main, 01
+
+		LOAD	part1_add, 05
+		LOAD	part2_add, 0D
+		LOAD	part3_add, 0E
+		LOAD	part4_add, 0F
+		RETURN
+
+T_block:
+		LOAD	part_main, 02
+
+		LOAD	part1_add, 04
+		LOAD	part2_add, 0D
+		LOAD	part3_add, 0E
+		LOAD	part4_add, 0F
+		RETURN
+
+Z_block:
+		LOAD	part_main, 03
+
+		LOAD	part1_add, 04
+		LOAD	part2_add, 05
+		LOAD	part3_add, 0F
+		LOAD	part4_add, 10
+		RETURN
+
+S_block:
+		LOAD	part_main, 04
+
+		LOAD	part1_add, 04
+		LOAD	part2_add, 05
+		LOAD	part3_add, 0D
+		LOAD	part4_add, 0E
+		RETURN
+
+I_block:
+		LOAD	part_main, 05
+
+		LOAD	part1_add, 03
+		LOAD	part2_add, 04
+		LOAD	part3_add, 05
+		LOAD	part4_add, 06
+		RETURN
+
+SQ_block:
+		LOAD	part_main, 06
+
+		LOAD	part1_add, 04
+		LOAD	part2_add, 05
+		LOAD	part3_add, 0E
+		LOAD	part4_add, 0F
+		RETURN
+
+firstRotate:
+		LOAD	s5, input_block 		;FF port has the type
+		COMPARE s5, 00
+		CALL 	Z,  T_block_1
+		LOAD	s5, input_block
+		COMPARE s5, 01
+		CALL 	Z,  L_inverse_1
+		LOAD	s5, input_block
+		COMPARE s5, 02
+		CALL 	Z,  L_block_1
+		LOAD	s5, input_block
+		COMPARE s5, 03
+		CALL 	Z,  Z_block_1
+		LOAD	s5, input_block
+		COMPARE s5, 04
+		CALL 	Z,  S_block_1
+		LOAD	s5, input_block
+		COMPARE s5, 05
+		CALL 	Z,  I_block_1
+		LOAD	s5, input_block
+		COMPARE s5, 06
+		CALL 	Z,  SQ_block_1
+	  LOAD  counter, 01
+		JUMP Collision
+
+L_block_1:
+		 ;CALL  rotateCollision
+		 LOAD	s5, 00
+		 OUTPUT	s5, (part1_add)
+		 OUTPUT	s5, (part4_add)
+
+		 SUB		  part4_add, 0C
+		 OUTPUT		part_main, (part4_add)
+		 SUB		  part1_add, 0C
+		 OUTPUT		part_main, (part1_add)
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part3_add)
+
+		 CALL		DELAY
+		 CALL		DELAY
+		 CALL		DELAY
+		 RETURN
+
+L_inverse_1:
+		 LOAD	s5, 00
+		 OUTPUT	s5, (part3_add)
+		 OUTPUT	s5, (part4_add)
+
+		 ADD		  part3_add, 09
+		 OUTPUT		part_main, (part3_add)
+		 SUB		  part4_add, 0B
+		 OUTPUT		part_main, (part4_add)
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+
+		 CALL		DELAY
+ 	 	 CALL		DELAY
+ 	   CALL		DELAY
+		 RETURN
+
+T_block_1:
+		 LOAD	  s5, 00
+		 OUTPUT	s5, (part2_add)
+		 OUTPUT	s5, (part4_add)
+
+		 SUB		  part4_add, 0A
+		 OUTPUT		part_main, (part4_add)
+		 OUTPUT		part_main, (part3_add)
+		 SUB		  part2_add, 13
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL		DELAY
+ 		 CALL		DELAY
+ 	 	 CALL		DELAY
+		 RETURN
+
+Z_block_1:
+		 LOAD	s5, 00
+		 OUTPUT	s5, (part3_add)
+		 OUTPUT	s5, (part4_add)
+
+		 SUB		  part4_add, 15
+		 OUTPUT		part_main, (part4_add)
+		 SUB		  part3_add, 01
+		 OUTPUT		part_main, (part3_add)
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL		DELAY
+ 		 CALL		DELAY
+ 		 CALL		DELAY
+		 RETURN
+
+S_block_1:
+		 LOAD	  s5, 00
+		 OUTPUT	s5, (part3_add)
+		 OUTPUT	s5, (part4_add)
+
+		 SUB		  part4_add, 14
+		 OUTPUT		part_main, (part4_add)
+		 ADD		  part3_add, 02
+		 OUTPUT		part_main, (part3_add)
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL		DELAY
+		 CALL		DELAY
+		 CALL	  DELAY
+		 RETURN
+
+I_block_1:
+		;collision control
+		LOAD	TEMP_add, part3_add
+		ADD		TEMP_add, 12
+		COMPARE	TEMP_add, DC
+		JUMP	NC, rotate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08
+		JUMP	NZ, Collision
+		LOAD	TEMP_add, part2_add
+		ADD		TEMP_add, 09
+		COMPARE	TEMP_add, DC
+		JUMP	NC, rotate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08
+		JUMP	NZ, Collision
+		LOAD	TEMP_add, part4_add
+		ADD		TEMP_add, 1B
+		COMPARE	TEMP_add, DC
+		JUMP	NC, rotate
+		INPUT 	TEMP, (TEMP_add)
+		TEST	TEMP, 08
+		JUMP	NZ, Collision
+
+		 LOAD	s5, 00
+		 OUTPUT	s5, (part2_add)
+		 OUTPUT	s5, (part3_add)
+		 OUTPUT	s5, (part4_add)
+
+
+		 ADD		  part4_add, 1B
+		 OUTPUT		part_main, (part4_add)
+		 ADD		  part3_add, 12
+		 OUTPUT		part_main, (part3_add)
+		 ADD		  part2_add, 09
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL		DELAY
+		 CALL		DELAY
+		 CALL	  DELAY
+		 RETURN
+
+SQ_block_1:
+		OUTPUT		part_main, (part4_add)
+		OUTPUT		part_main, (part3_add)
+		OUTPUT		part_main, (part2_add)
+		OUTPUT		part_main, (part1_add)
+
+		CALL			DELAY
+		CALL			DELAY
+		CALL			DELAY
+		CALL			DELAY
+		CALL	  	DELAY
+		RETURN
+
+secondRotate:
+				LOAD	 s5, input_block 		;FF port has the type
+				COMPARE s5, 00
+				CALL 	Z,  T_block_2
+				LOAD	s5, input_block
+				COMPARE s5, 01
+				CALL 	Z,  L_inverse_2
+				LOAD	s5, input_block
+				COMPARE s5, 02
+				CALL 	Z,  L_block_2
+				LOAD	s5, input_block
+				COMPARE s5, 03
+				CALL 	Z,  Z_block_2
+				LOAD	s5, input_block
+				COMPARE s5, 04
+				CALL 	Z,  S_block_2
+				LOAD	s5, input_block
+				COMPARE s5, 05
+				CALL 	Z,  I_block_2
+				LOAD	s5, input_block
+				COMPARE s5, 06
+				CALL 	Z,  SQ_block_2
+				LOAD   counter, 02
+
+				JUMP Collision
+
+		L_block_2:
+				 LOAD	  s5, 00
+				 OUTPUT	s5, (part1_add)
+				 OUTPUT	s5, (part3_add)
+
+				 ADD		  part1_add, 0C
+				 OUTPUT		part_main, (part1_add)
+				 SUB		  part3_add, 0A
+				 OUTPUT		part_main, (part3_add)
+				 OUTPUT		part_main, (part2_add)
+				 OUTPUT		part_main, (part4_add)
+
+				 CALL		DELAY
+				 CALL		DELAY
+				 CALL		DELAY
+				 RETURN
+
+		L_inverse_2:
+				 LOAD	  s5, 00
+				 OUTPUT	s5, (part2_add)
+				 OUTPUT	s5, (part3_add)
+
+				 OUTPUT		part_main, (part4_add)
+				 SUB  		part3_add, 08
+				 OUTPUT		part_main, (part3_add)
+				 SUB		  part2_add, 08
+				 OUTPUT		part_main, (part2_add)
+				 OUTPUT		part_main, (part1_add)
+
+			   CALL		DELAY
+			   CALL		DELAY
+				 CALL	  DELAY
+			 	 RETURN
+
+		T_block_2:
+				 LOAD	  s5, 00
+				 OUTPUT	s5, (part2_add)
+
+				 OUTPUT		part_main, (part4_add)
+				 OUTPUT		part_main, (part3_add)
+				 ADD		  part2_add, 09
+				 OUTPUT		part_main, (part2_add)
+				 OUTPUT		part_main, (part1_add)
+
+				 CALL		DELAY
+				 CALL		DELAY
+				 CALL	  DELAY
+				 RETURN
+
+		Z_block_2:
+				LOAD	  s5, 00
+				OUTPUT	s5, (part3_add)
+				OUTPUT	s5, (part4_add)
+
+				ADD		    part4_add, 15
+				OUTPUT		part_main, (part4_add)
+				ADD		    part3_add, 01
+				OUTPUT		part_main, (part3_add)
+				OUTPUT		part_main, (part2_add)
+				OUTPUT		part_main, (part1_add)
+
+				CALL		DELAY
+				CALL		DELAY
+				CALL	  DELAY
+				RETURN
+
+		S_block_2:
+		 LOAD	  s5, 00
+		 OUTPUT	s5, (part3_add)
+		 OUTPUT	s5, (part4_add)
+
+		 ADD		  part4_add, 14
+		 OUTPUT		part_main, (part4_add)
+		 SUB		  part3_add, 02
+		 OUTPUT		part_main, (part3_add)
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL		DELAY
+		 CALL		DELAY
+		 CALL	  DELAY
+		 RETURN
+
+		I_block_2:
+			LOAD	TEMP_add, part3_add
+			SUB		TEMP_add, 12
+			COMPARE	TEMP_add, DC
+			JUMP	NC, rotate
+			INPUT 	TEMP, (TEMP_add)
+			TEST	TEMP, 08
+			JUMP	NZ, Collision
+			LOAD	TEMP_add, part2_add
+		  SUB		TEMP_add, 09
+			COMPARE	TEMP_add, DC
+			JUMP	NC, rotate
+			INPUT 	TEMP, (TEMP_add)
+			TEST	TEMP, 08
+			JUMP	NZ, Collision
+			LOAD	TEMP_add, part4_add
+			SUB		TEMP_add, 1B
+			COMPARE	TEMP_add, DC
+			JUMP	NC, rotate
+			INPUT 	TEMP, (TEMP_add)
+			TEST	TEMP, 08
+			JUMP	NZ, Collision
+
+			LOAD		s5, 00
+			OUTPUT	s5, (part2_add)
+			OUTPUT	s5, (part3_add)
+			OUTPUT	s5, (part4_add)
+
+			SUB		    part4_add, 1B
+			OUTPUT		part_main, (part4_add)
+			SUB		    part3_add, 12
+			OUTPUT		part_main, (part3_add)
+			SUB		    part2_add, 09
+			OUTPUT		part_main, (part2_add)
+			OUTPUT		part_main, (part1_add)
+
+			CALL		DELAY
+			CALL		DELAY
+		 	CALL		DELAY
+		 	RETURN
+
+		SQ_block_2:
+				OUTPUT		part_main, (part4_add)
+				OUTPUT		part_main, (part3_add)
+				OUTPUT		part_main, (part2_add)
+				OUTPUT		part_main, (part1_add)
+				CALL		DELAY
+				CALL		DELAY
+				CALL	DELAY
+				RETURN
+
+		thirdRotate:
+				LOAD	s5, input_block 		;FF port has the type
+				COMPARE s5, 00
+				CALL 	Z,  T_block_3
+				LOAD	s5, input_block
+				COMPARE s5, 01
+				CALL 	Z,  L_inverse_3
+				LOAD	s5, input_block
+				COMPARE s5, 02
+				CALL 	Z,  L_block_3
+				LOAD	s5, input_block
+				COMPARE s5, 03
+				CALL 	Z,  Z_block_3
+				LOAD	s5, input_block
+				COMPARE s5, 04
+				CALL 	Z,  S_block_3
+				LOAD	s5, input_block
+				COMPARE s5, 05
+				CALL 	Z,  I_block_3
+				LOAD	s5, input_block
+				COMPARE s5, 06
+				CALL 	Z,  SQ_block_3
+				LOAD counter, 03
+				JUMP Collision
+
+		L_block_3:
+				 LOAD	s5, 00
+				 OUTPUT	s5, (part2_add)
+				 OUTPUT	s5, (part3_add)
+				 OUTPUT	s5, (part4_add)
+
+				 SUB		  part4_add, 08
+				 OUTPUT		part_main, (part4_add)
+				 SUB		  part3_add, 0A
+				 OUTPUT		part_main, (part3_add)
+				 ADD		  part2_add, 02
+				 OUTPUT		part_main, (part2_add)
+				 OUTPUT		part_main, (part1_add)
+
+				 CALL		DELAY
+				 CALL		DELAY
+				 CALL		DELAY
+				 RETURN
+
+		L_inverse_3:
+				 LOAD	  s5, 00
+				 OUTPUT	s5, (part1_add)
+				 OUTPUT	s5, (part2_add)
+				 OUTPUT	s5, (part3_add)
+				 OUTPUT	s5, (part4_add)
+
+				 OUTPUT		part_main, (part4_add)
+				 SUB		  part3_add, 01
+				 OUTPUT		part_main, (part3_add)
+				 ADD		  part2_add, 08
+				 OUTPUT		part_main, (part2_add)
+				 SUB		  part1_add, 09
+				 OUTPUT		part_main, (part1_add)
+
+				 CALL	  DELAY
+				 CALL	  DELAY
+				 CALL	  DELAY
+				 RETURN
+
+		T_block_3:
+				 LOAD	  s5, 00
+				 OUTPUT	s5, (part4_add)
+
+				 SUB		  part4_add, 0B
+				 OUTPUT		part_main, (part4_add)
+				 OUTPUT		part_main, (part3_add)
+				 OUTPUT		part_main, (part2_add)
+				 OUTPUT		part_main, (part1_add)
+
+				 CALL	  DELAY
+ 				 CALL	  DELAY
+ 				 CALL	  DELAY
+ 				 RETURN
+
+		Z_block_3:
+				LOAD	s5, 00
+				OUTPUT	s5, (part3_add)
+				OUTPUT	s5, (part4_add)
+
+				SUB		    part4_add, 15
+				OUTPUT		part_main, (part4_add)
+				SUB		    part3_add, 01
+				OUTPUT		part_main, (part3_add)
+				OUTPUT		part_main, (part2_add)
+				OUTPUT		part_main, (part1_add)
+
+				CALL	DELAY
+				CALL	DELAY
+				CALL	DELAY
+				RETURN
+
+		S_block_3:
+				LOAD	  s5, 00
+			  OUTPUT	s5, (part3_add)
+			  OUTPUT	s5, (part4_add)
+
+			  SUB		    part4_add, 14
+			  OUTPUT		part_main, (part4_add)
+			  ADD		    part3_add, 02
+			  OUTPUT		part_main, (part3_add)
+			  OUTPUT		part_main, (part2_add)
+			  OUTPUT		part_main, (part1_add)
+
+			  CALL		DELAY
+			  CALL		DELAY
+			  CALL	  DELAY
+			  RETURN
+
+		I_block_3:
+				LOAD	TEMP_add, part3_add
+				ADD		TEMP_add, 12
+				COMPARE	TEMP_add, DC
+				JUMP	NC, rotate
+				INPUT 	TEMP, (TEMP_add)
+				TEST	TEMP, 08
+				JUMP	NZ, Collision
+				LOAD	TEMP_add, part2_add
+				ADD		TEMP_add, 09
+				COMPARE	TEMP_add, DC
+				JUMP	NC, rotate
+				INPUT 	TEMP, (TEMP_add)
+				TEST	TEMP, 08
+				JUMP	NZ, Collision
+				LOAD	TEMP_add, part4_add
+				ADD		TEMP_add, 1B
+				COMPARE	TEMP_add, DC
+				JUMP	NC, rotate
+				INPUT 	TEMP, (TEMP_add)
+				TEST	TEMP, 08
+				JUMP	NZ, Collision
+
+				LOAD	  s5, 00
+				OUTPUT	s5, (part2_add)
+				OUTPUT	s5, (part3_add)
+				OUTPUT	s5, (part4_add)
+
+
+				ADD		    part4_add, 1B
+				OUTPUT		part_main, (part4_add)
+				ADD		    part3_add, 12
+				OUTPUT		part_main, (part3_add)
+				ADD		    part2_add, 09
+				OUTPUT		part_main, (part2_add)
+				OUTPUT		part_main, (part1_add)
+
+				CALL		DELAY
+				CALL		DELAY
+				CALL	  DELAY
+				RETURN
+
+		SQ_block_3:
+				OUTPUT		part_main, (part4_add)
+				OUTPUT		part_main, (part3_add)
+				OUTPUT		part_main, (part2_add)
+				OUTPUT		part_main, (part1_add)
+
+				CALL		DELAY
+				CALL		DELAY
+				CALL	  DELAY
+				RETURN
+
+zeroRotate:
+			LOAD	s5, input_block 		;FF port has the type
+			COMPARE s5, 00
+			CALL 	Z,  T_block_0
+			LOAD	s5, input_block
+			COMPARE s5, 01
+			CALL 	Z,  L_inverse_0
+			LOAD	s5, input_block
+			COMPARE s5, 02
+			CALL 	Z,  L_block_0
+			LOAD	s5, input_block
+			COMPARE s5, 03
+			CALL 	Z,  Z_block_0
+			LOAD	s5, input_block
+			COMPARE s5, 04
+			CALL 	Z,  S_block_0
+			LOAD	s5, input_block
+			COMPARE s5, 05
+			CALL 	Z,  I_block_0
+			LOAD	s5, input_block
+			COMPARE s5, 06
+			CALL 	Z,  SQ_block_0
+			LOAD  counter, 00
+			JUMP Collision
+
+L_block_0:
+			LOAD	  s5, 00
+			OUTPUT	s5, (part2_add)
+			OUTPUT	s5, (part3_add)
+			OUTPUT	s5, (part4_add)
+
+			ADD				part4_add, 14
+			OUTPUT		part_main, (part4_add)
+			ADD				part3_add, 14
+			OUTPUT		part_main, (part3_add)
+			SUB				part2_add, 02
+			OUTPUT		part_main, (part2_add)
+			OUTPUT		part_main, (part1_add)
+
+			CALL		DELAY
+			CALL		DELAY
+			CALL		DELAY
+			RETURN
+
+
+L_inverse_0:
+		 LOAD	s5, 00
+		 OUTPUT	s5, (part1_add)
+		 OUTPUT	s5, (part4_add)
+
+		 ADD		  part4_add, 0B
+		 OUTPUT		part_main, (part4_add)
+		 OUTPUT		part_main, (part3_add)
+		 OUTPUT		part_main, (part2_add)
+		 ADD		  part1_add, 09
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL	  DELAY
+		 CALL	  DELAY
+		 CALL	  DELAY
+		 RETURN
+
+T_block_0:
+		 LOAD	  s5, 00
+		 OUTPUT	s5, (part2_add)
+		 OUTPUT	s5, (part4_add)
+
+		 ADD		  part4_add, 15
+		 OUTPUT		part_main, (part4_add)
+		 OUTPUT		part_main, (part3_add)
+		 ADD		  part2_add, 0A
+		 OUTPUT		part_main, (part2_add)
+		 OUTPUT		part_main, (part1_add)
+
+		 CALL	    DELAY
+		 CALL	    DELAY
+		 CALL	    DELAY
+		 RETURN
+
+Z_block_0:
+		LOAD	  s5, 00
+		OUTPUT	s5, (part3_add)
+		OUTPUT	s5, (part4_add)
+
+		ADD		    part4_add, 15
+		OUTPUT		part_main, (part4_add)
+		ADD		    part3_add, 01
+		OUTPUT		part_main, (part3_add)
+		OUTPUT		part_main, (part2_add)
+		OUTPUT		part_main, (part1_add)
+
+		 CALL	    DELAY
+		 CALL	    DELAY
+		 CALL	    DELAY
+		 RETURN
+
+S_block_0:
+		LOAD	  s5, 00
+		OUTPUT	s5, (part3_add)
+		OUTPUT	s5, (part4_add)
+
+		ADD		  part4_add, 14
+		OUTPUT		part_main, (part4_add)
+		SUB		  part3_add, 02
+		OUTPUT		part_main, (part3_add)
+		OUTPUT		part_main, (part2_add)
+		OUTPUT		part_main, (part1_add)
+
+		CALL		DELAY
+		CALL		DELAY
+		CALL	  DELAY
+		RETURN
+
+	I_block_0:
+			LOAD	TEMP_add, part3_add
+			SUB		TEMP_add, 12
+			COMPARE	TEMP_add, DC
+			JUMP	NC, rotate
+			INPUT 	TEMP, (TEMP_add)
+			TEST	TEMP, 08
+			JUMP	NZ, Collision
+			LOAD	TEMP_add, part2_add
+			SUB		TEMP_add, 09
+			COMPARE	TEMP_add, DC
+			JUMP	NC, rotate
+			INPUT 	TEMP, (TEMP_add)
+			TEST	TEMP, 08
+			JUMP	NZ, Collision
+			LOAD	TEMP_add, part4_add
+			SUB		TEMP_add, 1B
+			COMPARE	TEMP_add, DC
+			JUMP	NC, rotate
+			INPUT 	TEMP, (TEMP_add)
+			TEST	TEMP, 08
+			JUMP	NZ, Collision
+
+			LOAD		s5, 00
+			OUTPUT	s5, (part2_add)
+			OUTPUT	s5, (part3_add)
+			OUTPUT	s5, (part4_add)
+
+			SUB		    part4_add, 1B
+			OUTPUT		part_main, (part4_add)
+			SUB		    part3_add, 12
+			OUTPUT		part_main, (part3_add)
+			SUB		    part2_add, 09
+			OUTPUT		part_main, (part2_add)
+			OUTPUT		part_main, (part1_add)
+
+			CALL		DELAY
+			CALL		DELAY
+			CALL		DELAY
+			RETURN
+
+SQ_block_0:
+			OUTPUT		part_main, (part4_add)
+			OUTPUT		part_main, (part3_add)
+			OUTPUT		part_main, (part2_add)
+			OUTPUT		part_main, (part1_add)
+
+			CALL		DELAY
+			CALL		DELAY
+			CALL	DELAY
+			RETURN
