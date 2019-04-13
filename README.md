@@ -4,5 +4,5 @@ Tetris game written for PicoBlaze softprocessor in Assembly language, VGA interf
 Brought to you by:
 
 * Burak Mert Gonultas
-* Ilayda Yaman
+* Ilayda Yaman https://www.linkedin.com/in/ilayda-yaman-9bba0ab1/
 * Talip Tolga Sari
